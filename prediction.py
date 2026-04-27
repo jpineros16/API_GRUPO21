@@ -5,8 +5,10 @@ import sys
 import os
 
 def predict_popularity(params):
-    clf = joblib.load(os.path.dirname(__file__) + '/spotify.pkl')
+    modelo = joblib.load(os.path.dirname(__file__) + '/spotify.pkl')
 
+    cat = modelo["cat"]
+    xgb = modelo["xgb"]
     row = {
         "duration_ms":       float(params.get("duration_ms")),
         "explicit":          int(params.get("explicit")),
@@ -26,9 +28,17 @@ def predict_popularity(params):
     }
 
     df = pd.get_dummies(pd.DataFrame([row]), columns=["track_genre"])
-    df = df.reindex(columns=clf.feature_names_in_, fill_value=0)
+    df = df.reindex(columns=modelo["columns"], fill_value=0)
 
-    return round(float(clf.predict(df)[0]), 2)
+    pred_cat = cat.predict(df)
+    pred_xgb = xgb.predict(df)
+
+    pred_final = (
+    modelo["peso_cat"] * pred_cat +
+    modelo["peso_xgb"] * pred_xgb
+    )
+
+    return round(float(pred_final[0]), 2)
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:
